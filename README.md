@@ -6,7 +6,9 @@
 [license]: https://github.com/tcnksm/go-httpstat/blob/master/LICENSE
 [godocs]: http://godoc.org/github.com/tcnksm/go-httpstat
 
-See [example](/_example) directory. 
+`go-httpstat` is a golang pacakge to trace HTTP latency infomation (DNSLookup, TCP Connection and so on) on any golang HTTP request. It uses [`httptrace`](https://golang.org/pkg/net/http/httptrace/) internally. Just create `go-httpstat` powered `context` and give it your `http.Request` (no big code modification is required). The original idea came from [`httpstat`](https://github.com/reorx/httpstat) command ( and Dave Cheney's [golang implementation](https://github.com/davecheney/httpstat) 👏. This package now traces same latency infomation as them.
+
+See example usage on [example](/_example) directory. 
 
 ## Install 
 
