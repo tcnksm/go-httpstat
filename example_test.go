@@ -1,4 +1,4 @@
-package main
+package httpstat
 
 import (
 	"io"
@@ -10,12 +10,13 @@ import (
 	"github.com/tcnksm/go-httpstat"
 )
 
-func main() {
+func Example() {
 	req, err := http.NewRequest("GET", "http://deeeet.com", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Create go-httpstat powered
 	var result httpstat.Result
 	ctx := httpstat.WithHTTPStat(req.Context(), &result)
 	req = req.WithContext(ctx)
@@ -32,8 +33,8 @@ func main() {
 	}
 	end := time.Now()
 
-	log.Printf("Name Lookup: %d ms", int(result.NameLookup/time.Millisecond))
-	log.Printf("Connect: %d ms", int(result.Connect/time.Millisecond))
+	log.Printf("Name Lookup:    %d ms", int(result.NameLookup/time.Millisecond))
+	log.Printf("Connect:        %d ms", int(result.Connect/time.Millisecond))
 	log.Printf("Start Transfer: %d ms", int(result.StartTransfer/time.Millisecond))
-	log.Printf("Total: %d ms", int(result.Total(end)/time.Millisecond))
+	log.Printf("Total:          %d ms", int(result.Total(end)/time.Millisecond))
 }
