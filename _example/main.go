@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -19,10 +21,18 @@ func main() {
 	req = req.WithContext(ctx)
 
 	client := http.DefaultClient
-	if _, err := client.Do(req); err != nil {
+	res, err := client.Do(req)
+	if err != nil {
 		log.Fatal(err)
 	}
+	defer res.Body.Close()
 
-	log.Printf("DNS Lookup: %d ms", int(result.DNSLookup/time.Millisecond))
-	log.Printf("TCP Connection: %d ms", int(result.TCPConnection/time.Millisecond))
+	if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
+		log.Fatal(err)
+	}
+	end := time.Now()
+
+	log.Printf("Name Lookup: %d ms", int(result.NameLookup/time.Millisecond))
+	log.Printf("Connect: %d ms", int(result.Connect/time.Millisecond))
+	log.Printf("Total: %d ms", int(result.Total(end)/time.Millisecond))
 }
