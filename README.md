@@ -10,6 +10,8 @@
 
 See usage and example on [GoDoc][godocs]
 
+*NOTE*: This package is still under development. Especially, TLSHandshake time may be incorrect (See [(https://github.com/golang/go/issues/16965](https://github.com/golang/go/issues/16965), [https://github.com/davecheney/httpstat/pull/7](https://github.com/davecheney/httpstat/pull/7)). 
+
 ## Install 
 
 Use `go get`,
