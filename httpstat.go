@@ -4,6 +4,7 @@ package httpstat
 
 import (
 	"context"
+	"net"
 	"net/http/httptrace"
 	"time"
 )
@@ -25,6 +26,8 @@ type Result struct {
 	t2 time.Time
 	t3 time.Time
 	t4 time.Time
+
+	isTLS bool
 }
 
 // ContentTransfer returns the duration of content transfer time.
@@ -45,6 +48,18 @@ func (r *Result) Total(t time.Time) time.Duration {
 // time of each httptrace hooks.
 func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		GetConn: func(hostPort string) {
+			_, port, err := net.SplitHostPort(hostPort)
+			if err != nil {
+				return
+			}
+
+			// Heuristic way to detect
+			if port == "443" {
+				r.isTLS = true
+			}
+		},
+
 		DNSStart: func(i httptrace.DNSStartInfo) {
 			r.t0 = time.Now()
 		},
@@ -55,13 +70,24 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 		},
 		ConnectDone: func(network, addr string, err error) {
 			r.t2 = time.Now()
-			r.TCPConnection = r.t2.Sub(r.t1)
-			r.Connect = r.t2.Sub(r.t0)
+			if r.isTLS {
+				r.TCPConnection = r.t2.Sub(r.t1)
+				r.Connect = r.t2.Sub(r.t0)
+			}
 		},
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
 			r.t3 = time.Now()
-			r.TLSHandshake = r.t3.Sub(r.t2)
-			r.Pretransfer = r.t3.Sub(r.t0)
+			if r.isTLS {
+				r.TLSHandshake = r.t3.Sub(r.t2)
+				r.Pretransfer = r.t3.Sub(r.t0)
+				return
+			}
+
+			r.TCPConnection = r.t3.Sub(r.t1)
+			r.Connect = r.t3.Sub(r.t0)
+
+			r.TLSHandshake = r.t3.Sub(r.t3)
+			r.Pretransfer = r.Connect
 		},
 		GotFirstResponseByte: func() {
 			r.t4 = time.Now()
