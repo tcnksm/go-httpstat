@@ -1,18 +1,22 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/tcnksm/go-httpstat"
 )
 
 func main() {
-	req, err := http.NewRequest("GET", "https://github.com", nil)
+	args := os.Args
+	if len(args) < 2 {
+		log.Fatalf("Usage: go run main.go URL")
+	}
+	req, err := http.NewRequest("GET", args[1], nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -26,11 +30,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer res.Body.Close()
 
 	if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
 		log.Fatal(err)
 	}
+	res.Body.Close()
 	end := time.Now()
 
 	log.Printf("DNS lookup: %d ms", int(result.DNSLookup/time.Millisecond))
@@ -38,7 +42,7 @@ func main() {
 	log.Printf("TLS handshake: %d ms", int(result.TLSHandshake/time.Millisecond))
 	log.Printf("Server processing: %d ms", int(result.ServerProcessing/time.Millisecond))
 	log.Printf("Content transfer: %d ms", int(result.ContentTransfer(time.Now())/time.Millisecond))
-	fmt.Println()
+	log.Println()
 
 	log.Printf("Name Lookup: %d ms", int(result.NameLookup/time.Millisecond))
 	log.Printf("Connect: %d ms", int(result.Connect/time.Millisecond))
