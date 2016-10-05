@@ -68,6 +68,14 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 			r.DNSLookup = r.t1.Sub(r.t0)
 			r.NameLookup = r.t1.Sub(r.t0)
 		},
+
+		ConnectStart: func(_, _ string) {
+			if r.t1.IsZero() {
+				// Connect to IP
+				r.t1 = time.Now()
+			}
+		},
+
 		ConnectDone: func(network, addr string, err error) {
 			r.t2 = time.Now()
 			if r.isTLS {
@@ -75,6 +83,17 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 				r.Connect = r.t2.Sub(r.t0)
 			}
 		},
+
+		GotConn: func(i httptrace.GotConnInfo) {
+			// Handle when keep alive is enabled and connection is reused.
+			// DNSStart(Done) and ConnectStart(Done) is skipped
+			if i.Reused {
+				r.t0 = time.Now()
+				r.t1 = r.t0
+				r.t2 = r.t0
+			}
+		},
+
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
 			r.t3 = time.Now()
 			if r.isTLS {
