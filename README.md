@@ -18,6 +18,10 @@ Use `go get`,
 $ go get github.com/tcnksm/go-httpstat
 ```
 
+## NOTE
+
+Since [`httptrace`](https://golang.org/pkg/net/http/httptrace/) was introduced after go1.7, this package does not work on old client. Especially, if you don't use `net.DialContext` it can not trace DNS and connection. 
+
 ## Author
 
 [Taichi Nakashima](https://github.com/tcnksm)
