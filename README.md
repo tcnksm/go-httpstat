@@ -10,6 +10,8 @@
 
 See usage and example on [GoDoc][godocs]. 
 
+*NOTE*: Since [`httptrace`](https://golang.org/pkg/net/http/httptrace/) was introduced after go1.7, this package may not work with old HTTP client. Especially, if you don't use `net.DialContext` it can not trace DNS and connection. 
+
 ## Install 
 
 Use `go get`,
@@ -17,10 +19,6 @@ Use `go get`,
 ```bash
 $ go get github.com/tcnksm/go-httpstat
 ```
-
-## NOTE
-
-Since [`httptrace`](https://golang.org/pkg/net/http/httptrace/) was introduced after go1.7, this package does not work on old client. Especially, if you don't use `net.DialContext` it can not trace DNS and connection. 
 
 ## Author
 
