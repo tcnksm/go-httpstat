@@ -70,8 +70,8 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 		},
 
 		ConnectStart: func(_, _ string) {
+			// If IP is used, DNSDone(t1) is not called.
 			if r.t1.IsZero() {
-				// Connect to IP
 				r.t1 = time.Now()
 			}
 		},
@@ -96,6 +96,16 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
 			r.t3 = time.Now()
+
+			// This means DNSStart, Done and ConnectStart is not
+			// called. This happens if client doesn't use DialContext
+			// or using net package before go1.7.
+			if r.t0.IsZero() && r.t1.IsZero() && r.t2.IsZero() {
+				r.t0 = time.Now()
+				r.t1 = r.t0
+				r.t2 = r.t0
+			}
+
 			if r.isTLS {
 				r.TLSHandshake = r.t3.Sub(r.t2)
 				r.Pretransfer = r.t3.Sub(r.t0)
