@@ -70,9 +70,10 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 		},
 
 		ConnectStart: func(_, _ string) {
-			// If IP is used, DNSDone(t1) is not called.
-			if r.t1.IsZero() {
-				r.t1 = time.Now()
+			// When connecting to IP
+			if r.t0.IsZero() {
+				r.t0 = time.Now()
+				r.t1 = r.t0
 			}
 		},
 
