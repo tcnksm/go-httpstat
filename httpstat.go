@@ -11,11 +11,13 @@ import (
 
 // Result stores httpstat info.
 type Result struct {
+	// The following are duration for each phase
 	DNSLookup        time.Duration
 	TCPConnection    time.Duration
 	TLSHandshake     time.Duration
 	ServerProcessing time.Duration
 
+	// The followings are timeline of reuqest
 	NameLookup    time.Duration
 	Connect       time.Duration
 	Pretransfer   time.Duration
@@ -28,6 +30,22 @@ type Result struct {
 	t4 time.Time
 
 	isTLS bool
+}
+
+func (r *Result) durations(t time.Time) map[string]time.Duration {
+	return map[string]time.Duration{
+		"DNSLookup":        r.DNSLookup,
+		"TCPConnection":    r.TCPConnection,
+		"TLSHandshake":     r.TLSHandshake,
+		"ServerProcessing": r.ServerProcessing,
+		"ContentTransfer":  r.ContentTransfer(t),
+
+		"NameLookup":    r.NameLookup,
+		"Connect":       r.Connect,
+		"Pretransfer":   r.Connect,
+		"StartTransfer": r.StartTransfer,
+		"Total":         r.Total(t),
+	}
 }
 
 // ContentTransfer returns the duration of content transfer time.
@@ -105,6 +123,7 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 				r.t0 = time.Now()
 				r.t1 = r.t0
 				r.t2 = r.t0
+				r.t3 = r.t0
 			}
 
 			if r.isTLS {

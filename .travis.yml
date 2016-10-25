@@ -1,0 +1,16 @@
+language: go
+go:
+  - 1.7.3
+  - tip
+
+os:
+  - linux
+  - osx
+
+sudo: false
+
+install:
+  - echo "skipping travis' default"
+
+script:
+  - go test -v
