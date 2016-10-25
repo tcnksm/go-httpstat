@@ -1,8 +1,10 @@
 # go-httpstat
 
+[![Build Status](http://img.shields.io/travis/tcnksm/go-httpstat.svg?style=flat-square)][travis] 
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
 [![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)][godocs]
 
+[travis]: https://travis-ci.org/tcnksm/go-httpstat
 [license]: https://github.com/tcnksm/go-httpstat/blob/master/LICENSE
 [godocs]: http://godoc.org/github.com/tcnksm/go-httpstat
 
