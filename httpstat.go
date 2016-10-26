@@ -29,7 +29,11 @@ type Result struct {
 	t3 time.Time
 	t4 time.Time
 
+	// isTLS is true when connection seems to use TLS
 	isTLS bool
+
+	// isReused is true when connection is reused (keep-alive)
+	isReused bool
 }
 
 func (r *Result) durations(t time.Time) map[string]time.Duration {
@@ -110,6 +114,8 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 				r.t0 = time.Now()
 				r.t1 = r.t0
 				r.t2 = r.t0
+
+				r.isReused = true
 			}
 		},
 
@@ -123,6 +129,11 @@ func WithHTTPStat(ctx context.Context, r *Result) context.Context {
 				r.t0 = time.Now()
 				r.t1 = r.t0
 				r.t2 = r.t0
+				r.t3 = r.t0
+			}
+
+			// When connection is reused, TLS handshake is skipped.
+			if r.isReused {
 				r.t3 = r.t0
 			}
 

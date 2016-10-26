@@ -62,6 +62,10 @@ func TestHTTPStat_HTTPS(t *testing.T) {
 	res.Body.Close()
 	end := time.Now()
 
+	if !result.isTLS {
+		t.Fatal("isTLS should be true")
+	}
+
 	for k, d := range result.durations(end) {
 		if d <= 0*time.Millisecond {
 			t.Fatalf("expect %s to be non-zero", k)
@@ -85,6 +89,10 @@ func TestHTTPStat_HTTP(t *testing.T) {
 	res.Body.Close()
 	end := time.Now()
 
+	if result.isTLS {
+		t.Fatal("isTLS should be false")
+	}
+
 	if got, want := result.TLSHandshake, 0*time.Millisecond; got != want {
 		t.Fatalf("TLSHandshake time of HTTP = %d, want %d", got, want)
 	}
@@ -96,6 +104,52 @@ func TestHTTPStat_HTTP(t *testing.T) {
 	for k, d := range durations {
 		if d <= 0*time.Millisecond {
 			t.Fatalf("expect %s to be non-zero", k)
+		}
+	}
+}
+
+func TestHTTPStat_KeepAlive(t *testing.T) {
+	req1, err := http.NewRequest("GET", TestDomainHTTPS, nil)
+	if err != nil {
+		t.Fatal("NewRequest failed:", err)
+	}
+
+	client := DefaultClient()
+	res1, err := client.Do(req1)
+	if err != nil {
+		t.Fatal("Request failed:", err)
+	}
+
+	if _, err := io.Copy(ioutil.Discard, res1.Body); err != nil {
+		t.Fatal("Copy body failed:", err)
+	}
+	res1.Body.Close()
+
+	var result Result
+	req2 := NewRequest(t, TestDomainHTTPS, &result)
+
+	// When second request, connection should be re-used.
+	res2, err := client.Do(req2)
+	if err != nil {
+		t.Fatal("Request failed:", err)
+	}
+
+	if _, err := io.Copy(ioutil.Discard, res2.Body); err != nil {
+		t.Fatal("Copy body failed:", err)
+	}
+	res2.Body.Close()
+
+	// The following values should be zero.
+	// Because connection is reused.
+	durations := []time.Duration{
+		result.DNSLookup,
+		result.TCPConnection,
+		result.TLSHandshake,
+	}
+
+	for i, d := range durations {
+		if got, want := d, 0*time.Millisecond; got != want {
+			t.Fatalf("#%d expect %d to be eq %d", i, got, want)
 		}
 	}
 }
