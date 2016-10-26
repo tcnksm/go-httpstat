@@ -1,6 +1,8 @@
 package httpstat
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -60,13 +62,13 @@ func TestHTTPStat_HTTPS(t *testing.T) {
 		t.Fatal("io.Copy failed:", err)
 	}
 	res.Body.Close()
-	end := time.Now()
+	result.End(time.Now())
 
 	if !result.isTLS {
 		t.Fatal("isTLS should be true")
 	}
 
-	for k, d := range result.durations(end) {
+	for k, d := range result.durations() {
 		if d <= 0*time.Millisecond {
 			t.Fatalf("expect %s to be non-zero", k)
 		}
@@ -87,7 +89,7 @@ func TestHTTPStat_HTTP(t *testing.T) {
 		t.Fatal("io.Copy failed:", err)
 	}
 	res.Body.Close()
-	end := time.Now()
+	result.End(time.Now())
 
 	if result.isTLS {
 		t.Fatal("isTLS should be false")
@@ -98,7 +100,7 @@ func TestHTTPStat_HTTP(t *testing.T) {
 	}
 
 	// Except TLS should be non zero
-	durations := result.durations(end)
+	durations := result.durations()
 	delete(durations, "TLSHandshake")
 
 	for k, d := range durations {
@@ -138,6 +140,7 @@ func TestHTTPStat_KeepAlive(t *testing.T) {
 		t.Fatal("Copy body failed:", err)
 	}
 	res2.Body.Close()
+	result.End(time.Now())
 
 	// The following values should be zero.
 	// Because connection is reused.
@@ -181,6 +184,7 @@ func TestHTTPStat_beforeGO17(t *testing.T) {
 		t.Fatal("io.Copy failed:", err)
 	}
 	res.Body.Close()
+	result.End(time.Now())
 
 	// The following values are not mesured.
 	durations := []time.Duration{
@@ -193,5 +197,41 @@ func TestHTTPStat_beforeGO17(t *testing.T) {
 		if got, want := d, 0*time.Millisecond; got != want {
 			t.Fatalf("#%d expect %d to be eq %d", i, got, want)
 		}
+	}
+}
+
+func TestHTTPStat_Formatter(t *testing.T) {
+	result := Result{
+		DNSLookup:        100 * time.Millisecond,
+		TCPConnection:    100 * time.Millisecond,
+		TLSHandshake:     100 * time.Millisecond,
+		ServerProcessing: 100 * time.Millisecond,
+		contentTransfer:  100 * time.Millisecond,
+
+		NameLookup:    100 * time.Millisecond,
+		Connect:       100 * time.Millisecond,
+		Pretransfer:   100 * time.Millisecond,
+		StartTransfer: 100 * time.Millisecond,
+		total:         100 * time.Millisecond,
+
+		t5: time.Now(),
+	}
+
+	want := `DNS lookup:         100 ms
+TCP connection:     100 ms
+TLS handshake:      100 ms
+Server processing:  100 ms
+Content transfer:   100 ms
+
+Name Lookup:     100 ms
+Connect:         100 ms
+Pre Transfer:    100 ms
+Start Transfer:  100 ms
+Total:           100 ms
+`
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "%+v", result)
+	if got := buf.String(); want != got {
+		t.Fatalf("expect to be eq:\n\nwant:\n\n%s\ngot:\n\n%s\n", want, got)
 	}
 }
