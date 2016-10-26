@@ -16,7 +16,7 @@ func Example() {
 		log.Fatal(err)
 	}
 
-	// Create go-httpstat powered
+	// Create go-httpstat powered context and pass it to http.Request
 	var result httpstat.Result
 	ctx := httpstat.WithHTTPStat(req.Context(), &result)
 	req = req.WithContext(ctx)
@@ -26,13 +26,14 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer res.Body.Close()
 
 	if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
 		log.Fatal(err)
 	}
+	res.Body.Close()
 	end := time.Now()
 
+	// Show results
 	log.Printf("Name Lookup:    %d ms", int(result.NameLookup/time.Millisecond))
 	log.Printf("Connect:        %d ms", int(result.Connect/time.Millisecond))
 	log.Printf("Start Transfer: %d ms", int(result.StartTransfer/time.Millisecond))
