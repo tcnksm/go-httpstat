@@ -30,12 +30,9 @@ func Example() {
 	if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
 		log.Fatal(err)
 	}
-	res.Body.Close()
-	end := time.Now()
 
-	// Show results
-	log.Printf("Name Lookup:    %d ms", int(result.NameLookup/time.Millisecond))
-	log.Printf("Connect:        %d ms", int(result.Connect/time.Millisecond))
-	log.Printf("Start Transfer: %d ms", int(result.StartTransfer/time.Millisecond))
-	log.Printf("Total:          %d ms", int(result.Total(end)/time.Millisecond))
+	res.Body.Close()
+	result.End(time.Now())
+
+	log.Printf("%+v", result)
 }
