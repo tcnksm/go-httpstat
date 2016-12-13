@@ -31,11 +31,8 @@ func Example() {
 		log.Fatal(err)
 	}
 	res.Body.Close()
-	end := time.Now()
+	result.End(time.Now())
 
 	// Show results
-	log.Printf("Name Lookup:    %d ms", int(result.NameLookup/time.Millisecond))
-	log.Printf("Connect:        %d ms", int(result.Connect/time.Millisecond))
-	log.Printf("Start Transfer: %d ms", int(result.StartTransfer/time.Millisecond))
-	log.Printf("Total:          %d ms", int(result.Total(end)/time.Millisecond))
+	log.Printf("%+v", result)
 }
