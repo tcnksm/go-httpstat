@@ -200,6 +200,20 @@ func TestHTTPStat_beforeGO17(t *testing.T) {
 	}
 }
 
+func TestTotal_Zero(t *testing.T) {
+	result := &Result{}
+	result.End(time.Now())
+
+	zero := 0 * time.Millisecond
+	if result.total != zero {
+		t.Fatalf("Total time is %d, want %d", result.total, zero)
+	}
+
+	if result.contentTransfer != zero {
+		t.Fatalf("Total time is %d, want %d", result.contentTransfer, zero)
+	}
+}
+
 func TestHTTPStat_Formatter(t *testing.T) {
 	result := Result{
 		DNSLookup:        100 * time.Millisecond,
