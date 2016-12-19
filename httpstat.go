@@ -74,9 +74,17 @@ func (r *Result) Total(t time.Time) time.Duration {
 	return t.Sub(r.t0)
 }
 
-// End sets the time when read is done.
+// End sets the time when reading response is done.
+// This must be called after reading response body.
 func (r *Result) End(t time.Time) {
 	r.t5 = t
+
+	// This means result is empty (it does nothing).
+	// Skip setting value(contentTransfer and total will be zero).
+	if r.t0.IsZero() {
+		return
+	}
+
 	r.contentTransfer = r.t5.Sub(r.t4)
 	r.total = r.t5.Sub(r.t0)
 }
