@@ -1,4 +1,4 @@
-// package httpstat traces HTTP latency infomation (DNSLookup, TCP Connection and so on) on any golang HTTP request.
+// Package httpstat traces HTTP latency infomation (DNSLookup, TCP Connection and so on) on any golang HTTP request.
 // It uses `httptrace` package. Just create `go-httpstat` powered `context.Context` and give it your `http.Request` (no big code modification is required).
 package httpstat
 
@@ -22,7 +22,7 @@ type Result struct {
 	ServerProcessing time.Duration
 	contentTransfer  time.Duration
 
-	// The followings are timeline of reuqest
+	// The followings are timeline of request
 	NameLookup    time.Duration
 	Connect       time.Duration
 	Pretransfer   time.Duration
