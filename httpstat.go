@@ -89,6 +89,7 @@ func (r *Result) End(t time.Time) {
 	r.total = r.t5.Sub(r.t0)
 }
 
+// Format implements fmt.Formatter interface.
 func (r Result) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
