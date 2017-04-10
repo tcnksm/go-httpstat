@@ -190,7 +190,7 @@ func TestHTTPStat_beforeGO17(t *testing.T) {
 	durations := []time.Duration{
 		result.DNSLookup,
 		result.TCPConnection,
-		result.TLSHandshake,
+		// result.TLSHandshake,
 	}
 
 	for i, d := range durations {
