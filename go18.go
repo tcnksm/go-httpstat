@@ -21,9 +21,9 @@ func (r *Result) End(t time.Time) {
 		return
 	}
 
-	r.ContentTransfer_duration = r.trasferDone.Sub(r.transferStart)
-	r.Total_duration += r.ContentTransfer_duration
-	r.End_done = r.trasferDone.Sub(r.dnsStart)
+	r.ContentTransfer = r.trasferDone.Sub(r.transferStart)
+
+	r.Total = r.trasferDone.Sub(r.dnsStart)
 }
 
 func withClientTrace(ctx context.Context, r *Result) context.Context {
@@ -34,11 +34,11 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 
 		DNSDone: func(i httptrace.DNSDoneInfo) {
 			r.dnsDone = time.Now()
-			
-			r.DNSLookup_duration = r.dnsDone.Sub(r.dnsStart)
-			r.Total_duration = r.DNSLookup_duration
-			r.NameLookup_done = r.DNSLookup_duration
-			
+
+			r.DNSLookup = r.dnsDone.Sub(r.dnsStart)
+			r.Total = r.DNSLookup
+			r.NameLookup = r.DNSLookup
+
 		},
 
 		ConnectStart: func(_, _ string) {
@@ -54,9 +54,9 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 		ConnectDone: func(network, addr string, err error) {
 			r.tcpDone = time.Now()
 
-			r.TCPConnection_duration = r.tcpDone.Sub(r.tcpStart)
-			r.Connect_done = r.tcpDone.Sub(r.dnsStart)
-			r.Total_duration += r.TCPConnection_duration
+			r.TCPConnection = r.tcpDone.Sub(r.tcpStart)
+			r.Connect = r.tcpDone.Sub(r.dnsStart)
+
 		},
 
 		TLSHandshakeStart: func() {
@@ -67,9 +67,9 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
 			r.tlsDone = time.Now()
 
-			r.TLSHandshake_duration = r.tlsDone.Sub(r.tlsStart)
-			r.Total_duration +=r.TLSHandshake_duration
-			r.Pretransfer_done = r.tlsDone.Sub(r.dnsStart)
+			r.TLSHandshake = r.tlsDone.Sub(r.tlsStart)
+
+			r.Pretransfer = r.tlsDone.Sub(r.dnsStart)
 		},
 
 		GotConn: func(i httptrace.GotConnInfo) {
@@ -107,9 +107,9 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 
 		GotFirstResponseByte: func() {
 			r.serverDone = time.Now()
-			r.ServerProcessing_duration = r.serverDone.Sub(r.serverStart)
-			r.StartTransfer_done = r.serverDone.Sub(r.dnsStart)
-			r.Total_duration += r.ServerProcessing_duration
+			r.ServerProcessing = r.serverDone.Sub(r.serverStart)
+			r.StartTransfer = r.serverDone.Sub(r.dnsStart)
+
 			r.transferStart = r.serverDone
 		},
 	})

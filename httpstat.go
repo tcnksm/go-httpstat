@@ -1,4 +1,4 @@
-// Package httpstat traces HTTP latency infomation (DNSLookup_duration, TCP Connection and so on) on any golang HTTP request.
+// Package httpstat traces HTTP latency infomation (DNSLookup, TCP Connection and so on) on any golang HTTP request.
 // It uses `httptrace` package. Just create `go-httpstat` powered `context.Context` and give it your `http.Request` (no big code modification is required).
 package httpstat
 
@@ -14,26 +14,18 @@ import (
 // Result stores httpstat info.
 type Result struct {
 	// The following are duration for each phase
-	DNSLookup_duration        time.Duration
-	TCPConnection_duration    time.Duration
-	TLSHandshake_duration     time.Duration
-	ServerProcessing_duration time.Duration
-	ContentTransfer_duration  time.Duration
-	Total_duration            time.Duration
+	DNSLookup        time.Duration
+	TCPConnection    time.Duration
+	TLSHandshake     time.Duration
+	ServerProcessing time.Duration
+	ContentTransfer  time.Duration
 
 	// The followings are timeline of request
-	NameLookup_done    time.Duration
-	Connect_done       time.Duration
-	Pretransfer_done   time.Duration
-	StartTransfer_done time.Duration
-	End_done           time.Duration
-
-	//t0 time.Time
-	//t1 time.Time
-	//t2 time.Time
-	//t3 time.Time
-	//t4 time.Time
-	//t5 time.Time // need to be provided from outside
+	NameLookup    time.Duration
+	Connect       time.Duration
+	Pretransfer   time.Duration
+	StartTransfer time.Duration
+	Total            time.Duration
 
 	dnsStart      time.Time
 	dnsDone       time.Time
@@ -55,21 +47,21 @@ type Result struct {
 
 func (r *Result) durations() map[string]time.Duration {
 	return map[string]time.Duration{
-		"DNSLookup_duration":        r.DNSLookup_duration,
-		"TCPConnection":    r.TCPConnection_duration,
-		"TLSHandshake":     r.TLSHandshake_duration,
-		"ServerProcessing": r.ServerProcessing_duration,
-		"ContentTransfer":  r.ContentTransfer_duration,
-		"Total":            r.Total_duration,
+		"DNSLookup":        r.DNSLookup,
+		"TCPConnection":    r.TCPConnection,
+		"TLSHandshake":     r.TLSHandshake,
+		"ServerProcessing": r.ServerProcessing,
+		"ContentTransfer":  r.ContentTransfer,
+		"Total":            r.Total,
 	}
 }
 func (r *Result) timeline() map[string]time.Duration {
 	return map[string]time.Duration{
-		"NameLookup":    r.NameLookup_done,
-		"Connect":       r.Connect_done,
-		"Pretransfer":   r.Pretransfer_done,
-		"StartTransfer": r.StartTransfer_done,
-		"End":         r.End_done,
+		"NameLookup":    r.NameLookup,
+		"Connect":       r.Connect,
+		"Pretransfer":   r.Pretransfer,
+		"StartTransfer": r.StartTransfer,
+		
 	}
 }
 
@@ -94,33 +86,33 @@ func (r Result) Format(s fmt.State, verb rune) {
 		if s.Flag('+') {
 			var buf bytes.Buffer
 			fmt.Fprintf(&buf, "DNS lookup:        %4d ms\n",
-				int(r.DNSLookup_duration/time.Millisecond))
+				int(r.DNSLookup/time.Millisecond))
 			fmt.Fprintf(&buf, "TCP connection:    %4d ms\n",
-				int(r.TCPConnection_duration/time.Millisecond))
+				int(r.TCPConnection/time.Millisecond))
 			fmt.Fprintf(&buf, "TLS handshake:     %4d ms\n",
-				int(r.TLSHandshake_duration/time.Millisecond))
+				int(r.TLSHandshake/time.Millisecond))
 			fmt.Fprintf(&buf, "Server processing: %4d ms\n",
-				int(r.ServerProcessing_duration/time.Millisecond))
+				int(r.ServerProcessing/time.Millisecond))
 
 			if !r.trasferDone.IsZero() {
 				fmt.Fprintf(&buf, "Content transfer:  %4d ms\n\n",
-					int(r.ContentTransfer_duration/time.Millisecond))
+					int(r.ContentTransfer/time.Millisecond))
 			} else {
 				fmt.Fprintf(&buf, "Content transfer:  %4s ms\n\n", "-")
 			}
 
 			fmt.Fprintf(&buf, "Name Lookup:    %4d ms\n",
-				int(r.NameLookup_done/time.Millisecond))
+				int(r.NameLookup/time.Millisecond))
 			fmt.Fprintf(&buf, "Connect:        %4d ms\n",
-				int(r.Connect_done/time.Millisecond))
+				int(r.Connect/time.Millisecond))
 			fmt.Fprintf(&buf, "Pre Transfer:   %4d ms\n",
-				int(r.Pretransfer_done/time.Millisecond))
+				int(r.Pretransfer/time.Millisecond))
 			fmt.Fprintf(&buf, "Start Transfer: %4d ms\n",
-				int(r.StartTransfer_done/time.Millisecond))
+				int(r.StartTransfer/time.Millisecond))
 
 			if !r.trasferDone.IsZero() {
 				fmt.Fprintf(&buf, "Total:          %4d ms\n",
-					int(r.Total_duration/time.Millisecond))
+					int(r.Total/time.Millisecond))
 			} else {
 				fmt.Fprintf(&buf, "Total:          %4s ms\n", "-")
 			}
