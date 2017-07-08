@@ -12,8 +12,10 @@ import (
 )
 
 const (
-	TestDomainHTTP  = "http://www.web-stat.com/"
-	TestDomainHTTPS = "https://blog.golang.org/"
+	TestDomainHTTP  = "http://example.com/"
+	TestDomainHTTPS = "https://example.com/"
+	//TestDomainHTTP  = "http://www.web-stat.com/"
+	//TestDomainHTTPS = "https://blog.golang.org/"
 )
 
 // Recommended way to instantiate a Transport
