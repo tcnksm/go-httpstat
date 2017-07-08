@@ -13,7 +13,7 @@ import (
 // This must be called after reading response body.
 func (r *Result) End(t time.Time) {
 	r.trasferDone = t
-	r.t5 = t // for Formatter
+	//r.t5 = t // for Formatter
 
 	// This means result is empty (it does nothing).
 	// Skip setting value(contentTransfer and total will be zero).
@@ -21,8 +21,9 @@ func (r *Result) End(t time.Time) {
 		return
 	}
 
-	r.contentTransfer = r.trasferDone.Sub(r.transferStart)
-	r.total = r.trasferDone.Sub(r.dnsStart)
+	r.ContentTransfer_duration = r.trasferDone.Sub(r.transferStart)
+	r.Total_duration += r.ContentTransfer_duration
+	r.End_done = r.trasferDone.Sub(r.dnsStart)
 }
 
 func withClientTrace(ctx context.Context, r *Result) context.Context {
@@ -33,9 +34,11 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 
 		DNSDone: func(i httptrace.DNSDoneInfo) {
 			r.dnsDone = time.Now()
-
-			r.DNSLookup = r.dnsDone.Sub(r.dnsStart)
-			r.NameLookup = r.dnsDone.Sub(r.dnsStart)
+			
+			r.DNSLookup_duration = r.dnsDone.Sub(r.dnsStart)
+			r.Total_duration = r.DNSLookup_duration
+			r.NameLookup_done = r.DNSLookup_duration
+			
 		},
 
 		ConnectStart: func(_, _ string) {
@@ -51,8 +54,9 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 		ConnectDone: func(network, addr string, err error) {
 			r.tcpDone = time.Now()
 
-			r.TCPConnection = r.tcpDone.Sub(r.tcpStart)
-			r.Connect = r.tcpDone.Sub(r.dnsStart)
+			r.TCPConnection_duration = r.tcpDone.Sub(r.tcpStart)
+			r.Connect_done = r.tcpDone.Sub(r.dnsStart)
+			r.Total_duration += r.TCPConnection_duration
 		},
 
 		TLSHandshakeStart: func() {
@@ -63,8 +67,9 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
 			r.tlsDone = time.Now()
 
-			r.TLSHandshake = r.tlsDone.Sub(r.tlsStart)
-			r.Pretransfer = r.tlsDone.Sub(r.dnsStart)
+			r.TLSHandshake_duration = r.tlsDone.Sub(r.tlsStart)
+			r.Total_duration +=r.TLSHandshake_duration
+			r.Pretransfer_done = r.tlsDone.Sub(r.dnsStart)
 		},
 
 		GotConn: func(i httptrace.GotConnInfo) {
@@ -72,49 +77,39 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 			// DNSStart(Done) and ConnectStart(Done) is skipped
 			if i.Reused {
 				r.isReused = true
+				now := time.Now()
+				r.dnsStart = now
+				r.dnsDone = now
+				r.tcpStart = now
+				r.tcpDone = now
 			}
 		},
 
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
 			r.serverStart = time.Now()
 
-			// When client doesn't use DialContext or using old (before go1.7) `net`
-			// pakcage, DNS/TCP/TLS hook is not called.
-			if r.dnsStart.IsZero() && r.tcpStart.IsZero() {
-				now := r.serverStart
-
-				r.dnsStart = now
-				r.dnsDone = now
-				r.tcpStart = now
-				r.tcpDone = now
-			}
-
+			// When client doesn't use DialContext or using old (before go1.7) `net` pakcage, DNS/TCP hook is not called.
 			// When connection is re-used, DNS/TCP/TLS hook is not called.
-			if r.isReused {
+			if (r.dnsStart.IsZero() && r.tcpStart.IsZero()) || (r.isReused) {
 				now := r.serverStart
 
 				r.dnsStart = now
 				r.dnsDone = now
 				r.tcpStart = now
 				r.tcpDone = now
-				r.tlsStart = now
-				r.tlsDone = now
+				if r.isTLS {
+					r.tlsStart = now
+					r.tlsDone = now
+				}
 			}
 
-			if r.isTLS {
-				return
-			}
-
-			r.TLSHandshake = r.tcpDone.Sub(r.tcpDone)
-			r.Pretransfer = r.Connect
 		},
 
 		GotFirstResponseByte: func() {
 			r.serverDone = time.Now()
-
-			r.ServerProcessing = r.serverDone.Sub(r.serverStart)
-			r.StartTransfer = r.serverDone.Sub(r.dnsStart)
-
+			r.ServerProcessing_duration = r.serverDone.Sub(r.serverStart)
+			r.StartTransfer_done = r.serverDone.Sub(r.dnsStart)
+			r.Total_duration += r.ServerProcessing_duration
 			r.transferStart = r.serverDone
 		},
 	})

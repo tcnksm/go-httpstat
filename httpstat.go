@@ -1,4 +1,4 @@
-// Package httpstat traces HTTP latency infomation (DNSLookup, TCP Connection and so on) on any golang HTTP request.
+// Package httpstat traces HTTP latency infomation (DNSLookup_duration, TCP Connection and so on) on any golang HTTP request.
 // It uses `httptrace` package. Just create `go-httpstat` powered `context.Context` and give it your `http.Request` (no big code modification is required).
 package httpstat
 
@@ -14,25 +14,26 @@ import (
 // Result stores httpstat info.
 type Result struct {
 	// The following are duration for each phase
-	DNSLookup        time.Duration
-	TCPConnection    time.Duration
-	TLSHandshake     time.Duration
-	ServerProcessing time.Duration
-	contentTransfer  time.Duration
+	DNSLookup_duration        time.Duration
+	TCPConnection_duration    time.Duration
+	TLSHandshake_duration     time.Duration
+	ServerProcessing_duration time.Duration
+	ContentTransfer_duration  time.Duration
+	Total_duration            time.Duration
 
 	// The followings are timeline of request
-	NameLookup    time.Duration
-	Connect       time.Duration
-	Pretransfer   time.Duration
-	StartTransfer time.Duration
-	total         time.Duration
+	NameLookup_done    time.Duration
+	Connect_done       time.Duration
+	Pretransfer_done   time.Duration
+	StartTransfer_done time.Duration
+	End_done           time.Duration
 
-	t0 time.Time
-	t1 time.Time
-	t2 time.Time
-	t3 time.Time
-	t4 time.Time
-	t5 time.Time // need to be provided from outside
+	//t0 time.Time
+	//t1 time.Time
+	//t2 time.Time
+	//t3 time.Time
+	//t4 time.Time
+	//t5 time.Time // need to be provided from outside
 
 	dnsStart      time.Time
 	dnsDone       time.Time
@@ -54,33 +55,37 @@ type Result struct {
 
 func (r *Result) durations() map[string]time.Duration {
 	return map[string]time.Duration{
-		"DNSLookup":        r.DNSLookup,
-		"TCPConnection":    r.TCPConnection,
-		"TLSHandshake":     r.TLSHandshake,
-		"ServerProcessing": r.ServerProcessing,
-		"ContentTransfer":  r.contentTransfer,
-
-		"NameLookup":    r.NameLookup,
-		"Connect":       r.Connect,
-		"Pretransfer":   r.Connect,
-		"StartTransfer": r.StartTransfer,
-		"Total":         r.total,
+		"DNSLookup_duration":        r.DNSLookup_duration,
+		"TCPConnection":    r.TCPConnection_duration,
+		"TLSHandshake":     r.TLSHandshake_duration,
+		"ServerProcessing": r.ServerProcessing_duration,
+		"ContentTransfer":  r.ContentTransfer_duration,
+		"Total":            r.Total_duration,
+	}
+}
+func (r *Result) timeline() map[string]time.Duration {
+	return map[string]time.Duration{
+		"NameLookup":    r.NameLookup_done,
+		"Connect":       r.Connect_done,
+		"Pretransfer":   r.Pretransfer_done,
+		"StartTransfer": r.StartTransfer_done,
+		"End":         r.End_done,
 	}
 }
 
 // ContentTransfer returns the duration of content transfer time.
 // It is from first response byte to the given time. The time must
 // be time after read body (go-httpstat can not detect that time).
-func (r *Result) ContentTransfer(t time.Time) time.Duration {
-	return t.Sub(r.t4)
-}
+//func (r *Result) ContentTransfer(t time.Time) time.Duration {
+	//return t.Sub(r.t4)
+//}
 
 // Total returns the duration of total http request.
 // It is from dns lookup start time to the given time. The
 // time must be time after read body (go-httpstat can not detect that time).
-func (r *Result) Total(t time.Time) time.Duration {
-	return t.Sub(r.t0)
-}
+//func (r *Result) Total(t time.Time) time.Duration {
+	//return t.Sub(r.t0)
+//}
 
 // Format formats stats result.
 func (r Result) Format(s fmt.State, verb rune) {
@@ -89,33 +94,33 @@ func (r Result) Format(s fmt.State, verb rune) {
 		if s.Flag('+') {
 			var buf bytes.Buffer
 			fmt.Fprintf(&buf, "DNS lookup:        %4d ms\n",
-				int(r.DNSLookup/time.Millisecond))
+				int(r.DNSLookup_duration/time.Millisecond))
 			fmt.Fprintf(&buf, "TCP connection:    %4d ms\n",
-				int(r.TCPConnection/time.Millisecond))
+				int(r.TCPConnection_duration/time.Millisecond))
 			fmt.Fprintf(&buf, "TLS handshake:     %4d ms\n",
-				int(r.TLSHandshake/time.Millisecond))
+				int(r.TLSHandshake_duration/time.Millisecond))
 			fmt.Fprintf(&buf, "Server processing: %4d ms\n",
-				int(r.ServerProcessing/time.Millisecond))
+				int(r.ServerProcessing_duration/time.Millisecond))
 
-			if !r.t5.IsZero() {
+			if !r.trasferDone.IsZero() {
 				fmt.Fprintf(&buf, "Content transfer:  %4d ms\n\n",
-					int(r.contentTransfer/time.Millisecond))
+					int(r.ContentTransfer_duration/time.Millisecond))
 			} else {
 				fmt.Fprintf(&buf, "Content transfer:  %4s ms\n\n", "-")
 			}
 
 			fmt.Fprintf(&buf, "Name Lookup:    %4d ms\n",
-				int(r.NameLookup/time.Millisecond))
+				int(r.NameLookup_done/time.Millisecond))
 			fmt.Fprintf(&buf, "Connect:        %4d ms\n",
-				int(r.Connect/time.Millisecond))
+				int(r.Connect_done/time.Millisecond))
 			fmt.Fprintf(&buf, "Pre Transfer:   %4d ms\n",
-				int(r.Pretransfer/time.Millisecond))
+				int(r.Pretransfer_done/time.Millisecond))
 			fmt.Fprintf(&buf, "Start Transfer: %4d ms\n",
-				int(r.StartTransfer/time.Millisecond))
+				int(r.StartTransfer_done/time.Millisecond))
 
-			if !r.t5.IsZero() {
+			if !r.trasferDone.IsZero() {
 				fmt.Fprintf(&buf, "Total:          %4d ms\n",
-					int(r.total/time.Millisecond))
+					int(r.Total_duration/time.Millisecond))
 			} else {
 				fmt.Fprintf(&buf, "Total:          %4s ms\n", "-")
 			}
@@ -126,10 +131,19 @@ func (r Result) Format(s fmt.State, verb rune) {
 		fallthrough
 	case 's', 'q':
 		d := r.durations()
-		list := make([]string, 0, len(d))
+		t := r.timeline()
+		list := make([]string, 0, len(d) + len(t))
 		for k, v := range d {
 			// Handle when End function is not called
-			if (k == "ContentTransfer" || k == "Total") && r.t5.IsZero() {
+			if (k == "ContentTransfer" || k == "Total") && r.trasferDone.IsZero() {
+				list = append(list, fmt.Sprintf("%s: - ms", k))
+				continue
+			}
+			list = append(list, fmt.Sprintf("%s: %d ms", k, v/time.Millisecond))
+		}
+		for k, v := range t {
+			// Handle when End function is not called
+			if k == "End" && r.trasferDone.IsZero() {
 				list = append(list, fmt.Sprintf("%s: - ms", k))
 				continue
 			}
