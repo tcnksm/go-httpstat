@@ -20,13 +20,14 @@ type Result struct {
 	ServerProcessing time.Duration
 	ContentTransfer  time.Duration
 
-	// The followings are timeline of request
+	// The followings are timeline of request, starting from the first DNS query
 	NameLookup    time.Duration
 	Connect       time.Duration
 	Pretransfer   time.Duration
 	StartTransfer time.Duration
 	Total            time.Duration
 
+	// These are proper timestamps of the different events
 	dnsStart      time.Time
 	dnsDone       time.Time
 	tcpStart      time.Time
@@ -36,7 +37,7 @@ type Result struct {
 	serverStart   time.Time
 	serverDone    time.Time
 	transferStart time.Time
-	trasferDone   time.Time // need to be provided from outside
+	trasferDone   time.Time // need to be provided from outside in the End() method
 
 	// isTLS is true when connection seems to use TLS
 	isTLS bool
@@ -64,20 +65,6 @@ func (r *Result) timeline() map[string]time.Duration {
 		
 	}
 }
-
-// ContentTransfer returns the duration of content transfer time.
-// It is from first response byte to the given time. The time must
-// be time after read body (go-httpstat can not detect that time).
-//func (r *Result) ContentTransfer(t time.Time) time.Duration {
-	//return t.Sub(r.t4)
-//}
-
-// Total returns the duration of total http request.
-// It is from dns lookup start time to the given time. The
-// time must be time after read body (go-httpstat can not detect that time).
-//func (r *Result) Total(t time.Time) time.Duration {
-	//return t.Sub(r.t0)
-//}
 
 // Format formats stats result.
 func (r Result) Format(s fmt.State, verb rune) {

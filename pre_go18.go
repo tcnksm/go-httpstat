@@ -14,15 +14,14 @@ import (
 func (r *Result) End(t time.Time) {
 	r.trasferDone = t
 
-	// This means result is empty (it does nothing).
+	// This means there was no initial HTTP Request.
 	// Skip setting value(contentTransfer and total will be zero).
 	if r.dnsStart.IsZero() {
 		return
 	}
 
-	r.ContentTransfer_duration = r.trasferDone.Sub(r.transferStart)
-	r.Total_duration += r.ContentTransfer_duration
-	r.End_done = r.trasferDone.Sub(r.dnsStart)
+	r.ContentTransfer = r.trasferDone.Sub(r.transferStart)
+	r.Total = r.trasferDone.Sub(r.dnsStart)
 }
 
 func withClientTrace(ctx context.Context, r *Result) context.Context {
@@ -44,11 +43,12 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 		},
 		DNSDone: func(i httptrace.DNSDoneInfo) {
 			r.dnsDone = time.Now()
-			r.DNSLookup_duration = r.dnsDone.Sub(r.dnsStart)
+			r.DNSLookup = r.dnsDone.Sub(r.dnsStart)
 			r.NameLookup = r.dnsDone.Sub(r.dnsStart)
 		},
 
 		ConnectStart: func(_, _ string) {
+			r.tcpStart = time.Now()
 			// When connecting to IP
 			if r.dnsStart.IsZero() {
 				r.dnsStart = time.Now()
@@ -58,12 +58,8 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 
 		ConnectDone: func(network, addr string, err error) {
 			r.tcpDone = time.Now()
-			
-			r.TCPConnection_duration = r.tcpDone.Sub(r.tcpStart)
-			r.Connect_done = r.tcpDone.Sub(r.dnsStart)
-			r.Total_duration += r.TCPConnection_duration
-			
-			
+			r.TCPConnection = r.tcpDone.Sub(r.tcpStart)
+			r.Connect = r.tcpDone.Sub(r.dnsStart)
 		},
 
 		GotConn: func(i httptrace.GotConnInfo) {
@@ -82,35 +78,27 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
 			r.serverStart = time.Now()
 
-			// This means DNSStart, Done and ConnectStart is not
-			// called. This happens if client doesn't use DialContext
-			// or using net package before go1.7.
+			// This means DNSStart, Done and ConnectStart is not called. This happens if client doesn't use DialContext
+			// or using net package before go1.7 or if the connection is reused
 			if (r.dnsStart.IsZero() && r.tcpStart.IsZero()) || (r.isReused) {
 				now := r.serverStart
-
 				r.dnsStart = now
 				r.dnsDone = now
 				r.tcpStart = now
 				r.tcpDone = now
-				if r.isTLS {
-					r.tlsStart = now
-					r.tlsDone = now
-				}
 			}
-
+			
 			if r.isTLS {
-				r.TLSHandshake_duration = r.serverStart.Sub(r.tcpDone)
-				r.Total_duration +=r.TLSHandshake_duration
+				r.TLSHandshake = r.serverStart.Sub(r.tcpDone)
+				r.Total +=r.TLSHandshake
 				r.Pretransfer_done = r.serverStart.Sub(r.dnsStart)
 			}
 
-			
 		},
 		GotFirstResponseByte: func() {
 			r.serverDone = time.Now()
-			r.ServerProcessing_duration = r.serverDone.Sub(r.serverStart)
-			r.StartTransfer_done = r.serverDone.Sub(r.dnsStart)
-			r.Total_duration += r.ServerProcessing_duration
+			r.ServerProcessing = r.serverDone.Sub(r.serverStart)
+			r.StartTransfer = r.serverDone.Sub(r.dnsStart)
 			r.transferStart = r.serverDone
 		},
 	})
