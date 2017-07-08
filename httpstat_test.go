@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	TestDomainHTTP  = "http://http://www.web-stat.com/"
+	TestDomainHTTP  = "http://www.web-stat.com/"
 	TestDomainHTTPS = "https://blog.golang.org/"
 )
 
@@ -28,7 +28,7 @@ func DefaultTransport() *http.Transport {
 		}).DialContext,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
-		TLSHandshake_durationTimeout:   10 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 }
@@ -37,10 +37,6 @@ func DefaultTransport() *http.Transport {
 func NoDialerTransport() *http.Transport {
 	return &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
-		MaxIdleConns:          1,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshake_durationTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
 	}
 }
 
@@ -51,7 +47,7 @@ func OldTransport() *http.Transport {
 		Dial: (&net.Dialer{
 			Timeout: 5 * time.Second,
 		}).Dial,
-		TLSHandshake_durationTimeout: 5 * time.Second,
+		TLSHandshakeTimeout: 5 * time.Second,
 	}
 }
 
@@ -86,7 +82,15 @@ func NewRequest(t *testing.T, urlStr string, result *Result) *http.Request {
 	return req.WithContext(ctx)
 }
 
+
 func TestHTTPStat_HTTPS(t *testing.T) {
+	/*
+	DNSDone
+	tcpDone
+	tlsDone
+	GotConn
+	serverStart
+	*/
 	var result Result
 	req := NewRequest(t, TestDomainHTTPS, &result)
 
@@ -115,7 +119,14 @@ func TestHTTPStat_HTTPS(t *testing.T) {
 	
 }
 
+
 func TestHTTPStat_HTTP(t *testing.T) {
+	/*
+	DNSDone
+	tcpDone
+	GotConn
+	serverStart
+	*/
 	var result Result
 	req := NewRequest(t, TestDomainHTTP, &result)
 
@@ -135,13 +146,13 @@ func TestHTTPStat_HTTP(t *testing.T) {
 		t.Fatal("isTLS should be false")
 	}
 
-	if got, want := result.TLSHandshake_duration, 0*time.Millisecond; got != want {
-		t.Fatalf("TLSHandshake_duration time of HTTP = %d, want %d", got, want)
+	if got, want := result.TLSHandshake, 0*time.Millisecond; got != want {
+		t.Fatalf("TLSHandshake time of HTTP = %d, want %d", got, want)
 	}
 
 	// Except TLS should be non zero
 	durations := result.durations()
-	delete(durations, "TLSHandshake_duration")
+	delete(durations, "TLSHandshake")
 
 	for k, d := range durations {
 		if d <= 0*time.Millisecond {
@@ -151,6 +162,11 @@ func TestHTTPStat_HTTP(t *testing.T) {
 }
 
 func TestHTTPStat_KeepAlive_HTTPS(t *testing.T) {
+	/*
+	GotConn
+	serverStart
+	*/
+
 	req1, err := http.NewRequest("GET", TestDomainHTTPS, nil)
 	if err != nil {
 		t.Fatal("NewRequest failed:", err)
@@ -185,9 +201,9 @@ func TestHTTPStat_KeepAlive_HTTPS(t *testing.T) {
 	// The following values should be zero.
 	// Because connection is reused.
 	durations := []time.Duration{
-		result.DNSLookup_duration,
-		result.TCPConnect_doneion_duration,
-		result.TLSHandshake_duration,
+		result.DNSLookup,
+		result.TCPConnection,
+		result.TLSHandshake,
 	}
 
 	for i, d := range durations {
@@ -198,6 +214,10 @@ func TestHTTPStat_KeepAlive_HTTPS(t *testing.T) {
 }
 
 func TestHTTPStat_KeepAlive_HTTP(t *testing.T) {
+	/*
+	GotConn
+	serverStart
+	*/
 	req1, err := http.NewRequest("GET", TestDomainHTTP, nil)
 	if err != nil {
 		t.Fatal("NewRequest failed:", err)
@@ -232,8 +252,8 @@ func TestHTTPStat_KeepAlive_HTTP(t *testing.T) {
 	// The following values should be zero.
 	// Because connection is reused.
 	durations := []time.Duration{
-		result.DNSLookup_duration,
-		result.TCPConnect_doneion_duration,
+		result.DNSLookup,
+		result.TCPConnection,
 	}
 
 	for i, d := range durations {
@@ -245,15 +265,20 @@ func TestHTTPStat_KeepAlive_HTTP(t *testing.T) {
 
 
 func TestHTTPStat_beforeGO17(t *testing.T) {
-	var result Result
+	/*
+	tlsDone  (If HTTPS)
+	GotConn
+	serverStart
+	*/
+	var result1,result2 Result
 	
 	// Before go1.7, it uses non context based Dial function.
 	// It doesn't support httptrace.
 	client := OldDialerClient()
 
-	req1 := NewRequest(t, TestDomainHTTPS, &result)
+	req1 := NewRequest(t, TestDomainHTTPS, &result1)
 
-	res, err := client.Do(req)
+	res, err := client.Do(req1)
 	if err != nil {
 		t.Fatal("client.Do failed:", err)
 	}
@@ -262,24 +287,24 @@ func TestHTTPStat_beforeGO17(t *testing.T) {
 		t.Fatal("io.Copy failed:", err)
 	}
 	res.Body.Close()
-	result.End(time.Now())
+	result1.End(time.Now())
 
 	// The following values are not mesured, should be 0
 	durations := []time.Duration{
-		result.DNSLookup_duration,
-		result.TCPConnect_doneion_duration,
-		result.TLSHandshake_duration,
+		result1.DNSLookup,
+		result1.TCPConnection,
 	}
 
 	for i, d := range durations {
 		if got, want := d, 0*time.Millisecond; got != want {
+			t.Logf("Result is \n %+v",result1 )
 			t.Fatalf("#%d expect %d to be eq %d", i, got, want)
 		}
 	}
 	
-	req2 := NewRequest(t, TestDomainHTTP, &result)
+	req2 := NewRequest(t, TestDomainHTTP, &result2)
 
-	res, err := client.Do(req)
+	res, err = client.Do(req2)
 	if err != nil {
 		t.Fatal("client.Do failed:", err)
 	}
@@ -288,32 +313,40 @@ func TestHTTPStat_beforeGO17(t *testing.T) {
 		t.Fatal("io.Copy failed:", err)
 	}
 	res.Body.Close()
-	result.End(time.Now())
+	result2.End(time.Now())
 
 	// The following values are not mesured, should be 0
-	durations := []time.Duration{
-		result.DNSLookup_duration,
-		result.TCPConnect_doneion_duration,
-		result.TLSHandshake_duration,
+	durations = []time.Duration{
+		result2.DNSLookup,
+		result2.TCPConnection,
+		result2.TLSHandshake,
 	}
 
 	for i, d := range durations {
 		if got, want := d, 0*time.Millisecond; got != want {
+			t.Logf("Result is \n %+v",result2 )
 			t.Fatalf("#%d expect %d to be eq %d", i, got, want)
 		}
 	}
 }
 
 
-func TestHTTPStat_BadDialer_HTTPS(t *testing.T) {
-	var result Result
+func TestHTTPStat_NoDialer_HTTPS(t *testing.T) {
+	/*
+	DNSDone   >> First time only
+	tcpDone  >> First time only
+	tlsDone  >> First time only
+	GotConn
+	serverStart
+	*/
+	var result1,result2 Result
 	
 	// Using the Transport but without a Dialer
 	client := NoDialerClient()
 
-	req1 := NewRequest(t, TestDomainHTTPS, &result)
+	req1 := NewRequest(t, TestDomainHTTPS, &result1)
 
-	res, err := client.Do(req)
+	res, err := client.Do(req1)
 	if err != nil {
 		t.Fatal("client.Do failed:", err)
 	}
@@ -322,20 +355,24 @@ func TestHTTPStat_BadDialer_HTTPS(t *testing.T) {
 		t.Fatal("io.Copy failed:", err)
 	}
 	res.Body.Close()
-	result.End(time.Now())
+	result1.End(time.Now())
 
-	if !result.isTLS {
+	if !result1.isTLS {
 		t.Fatal("isTLS should be true")
 	}
-
-	for k, d := range result.durations() {
+	
+	durationsMap := result1.durations()
+	// Without a Dialer, the DNS Lookup could be 0, so not comparing it
+	delete(durationsMap, "DNSLookup")
+	for k, d := range durationsMap {
 		if d <= 0*time.Millisecond {
+			t.Logf("Result is \n %+v",result1 )
 			t.Fatalf("expect %s to be non-zero", k)
 		}
 	}
 
 	
-	req2 := NewRequest(t, TestDomainHTTPS, &result)
+	req2 := NewRequest(t, TestDomainHTTPS, &result2)
 
 	// When second request, connection should be re-used.
 	res2, err := client.Do(req2)
@@ -347,32 +384,39 @@ func TestHTTPStat_BadDialer_HTTPS(t *testing.T) {
 		t.Fatal("Copy body failed:", err)
 	}
 	res2.Body.Close()
-	result.End(time.Now())
+	result2.End(time.Now())
 
 	// The following values should be zero.
 	// Because connection is reused.
 	durations := []time.Duration{
-		result.DNSLookup_duration,
-		result.TCPConnect_doneion_duration,
-		result.TLSHandshake_duration,
+		result2.DNSLookup,
+		result2.TCPConnection,
+		result2.TLSHandshake,
 	}
 
 	for i, d := range durations {
 		if got, want := d, 0*time.Millisecond; got != want {
+			t.Logf("Result is \n %+v",result2 )
 			t.Fatalf("#%d expect %d to be eq %d", i, got, want)
 		}
 	}
 }
 
-func TestHTTPStat_BadDialer_HTTP(t *testing.T) {
-	var result Result
+func TestHTTPStat_NoDialer_HTTP(t *testing.T) {
+	/*
+	DNSDone   >> First time only
+	tcpDone  >> First time only
+	GotConn
+	serverStart
+	*/
+	var result1,result2 Result
 	
 	// Using the Transport but without a Dialer
 	client := NoDialerClient()
 
-	req1 := NewRequest(t, TestDomainHTTP, &result)
+	req1 := NewRequest(t, TestDomainHTTP, &result1)
 
-	res, err := client.Do(req)
+	res, err := client.Do(req1)
 	if err != nil {
 		t.Fatal("client.Do failed:", err)
 	}
@@ -381,20 +425,25 @@ func TestHTTPStat_BadDialer_HTTP(t *testing.T) {
 		t.Fatal("io.Copy failed:", err)
 	}
 	res.Body.Close()
-	result.End(time.Now())
+	result1.End(time.Now())
 
-	if !result.isTLS {
-		t.Fatal("isTLS should be true")
+	if result1.isTLS {
+		t.Fatal("isTLS should be false")
 	}
 
-	for k, d := range result.durations() {
+	durationsMap := result1.durations()
+	// Without a Dialer, the DNS Lookup could be 0, so not comparing it
+	delete(durationsMap, "DNSLookup")
+	delete(durationsMap, "TLSHandshake")
+	for k, d := range durationsMap {
 		if d <= 0*time.Millisecond {
+			t.Logf("Result is \n %+v",result1 )
 			t.Fatalf("expect %s to be non-zero", k)
 		}
 	}
 
 	
-	req2 := NewRequest(t, TestDomainHTTP, &result)
+	req2 := NewRequest(t, TestDomainHTTP, &result2)
 
 	// When second request, connection should be re-used.
 	res2, err := client.Do(req2)
@@ -406,18 +455,19 @@ func TestHTTPStat_BadDialer_HTTP(t *testing.T) {
 		t.Fatal("Copy body failed:", err)
 	}
 	res2.Body.Close()
-	result.End(time.Now())
+	result2.End(time.Now())
 
 	// The following values should be zero.
 	// Because connection is reused.
 	durations := []time.Duration{
-		result.DNSLookup_duration,
-		result.TCPConnect_doneion_duration,
-		result.TLSHandshake_duration,
+		result2.DNSLookup,
+		result2.TCPConnection,
+		result2.TLSHandshake,
 	}
 
 	for i, d := range durations {
 		if got, want := d, 0*time.Millisecond; got != want {
+			t.Logf("Result is \n %+v",result2 )
 			t.Fatalf("#%d expect %d to be eq %d", i, got, want)
 		}
 	}
@@ -428,27 +478,27 @@ func TestTotal_Zero(t *testing.T) {
 	result.End(time.Now())
 
 	zero := 0 * time.Millisecond
-	if result.Total_duration != zero {
-		t.Fatalf("Total time is %d, want %d", result.Total_duration, zero)
+	if result.Total != zero {
+		t.Fatalf("Total time is %d, want %d", result.Total, zero)
 	}
 
-	if result.ContentTransfer_duration != zero {
-		t.Fatalf("Total time is %d, want %d", result.ContentTransfer_duration, zero)
+	if result.ContentTransfer != zero {
+		t.Fatalf("Total time is %d, want %d", result.ContentTransfer, zero)
 	}
 }
 
 func TestHTTPStat_Formatter(t *testing.T) {
 	result := Result{
-		DNSLookup_duration:        100 * time.Millisecond,
-		TCPConnect_doneion_duration:    100 * time.Millisecond,
-		TLSHandshake_duration:     100 * time.Millisecond,
-		ServerProcessing_duration: 100 * time.Millisecond,
-		ContentTransfer_duration:  100 * time.Millisecond,
-		NameLookup_done:    100 * time.Millisecond,
-		Connect_done:       100 * time.Millisecond,
-		Pretransfer_done:   100 * time.Millisecond,
-		StartTransfer_done: 100 * time.Millisecond,
-		End_done:         100 * time.Millisecond,
+		DNSLookup:        100 * time.Millisecond,
+		TCPConnection:    100 * time.Millisecond,
+		TLSHandshake:     100 * time.Millisecond,
+		ServerProcessing: 100 * time.Millisecond,
+		ContentTransfer:  100 * time.Millisecond,
+		NameLookup:    100 * time.Millisecond,
+		Connect:       100 * time.Millisecond,
+		Pretransfer:   100 * time.Millisecond,
+		StartTransfer: 100 * time.Millisecond,
+		Total:         100 * time.Millisecond,
 
 		trasferDone: time.Now(),
 	}
@@ -460,7 +510,7 @@ Server processing:  100 ms
 Content transfer:   100 ms
 
 Name Lookup:     100 ms
-Connect_done:         100 ms
+Connect:         100 ms
 Pre Transfer:    100 ms
 Start Transfer:  100 ms
 Total:           100 ms

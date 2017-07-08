@@ -35,6 +35,7 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 			r.dnsDone = time.Now()
 			r.DNSLookup = r.dnsDone.Sub(r.dnsStart)
 			r.NameLookup = r.DNSLookup
+			
 		},
 
 		ConnectStart: func(_, _ string) {
@@ -50,23 +51,31 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 			r.tcpDone = time.Now()
 			r.TCPConnection = r.tcpDone.Sub(r.tcpStart)
 			r.Connect = r.tcpDone.Sub(r.dnsStart)
-
+			
 		},
 
 		TLSHandshakeStart: func() {
 			r.isTLS = true
 			r.tlsStart = time.Now()
+			
+			if r.dnsStart.IsZero() && r.tcpStart.IsZero() {
+				r.dnsStart = r.tlsStart
+				r.dnsDone = r.tlsStart
+				r.tcpStart =  r.tlsStart
+				r.tcpDone =  r.tlsStart
+			}
 		},
 
 		TLSHandshakeDone: func(_ tls.ConnectionState, _ error) {
 			r.tlsDone = time.Now()
 			r.TLSHandshake = r.tlsDone.Sub(r.tlsStart)
 			r.Pretransfer = r.tlsDone.Sub(r.dnsStart)
+			
 		},
 
 		GotConn: func(i httptrace.GotConnInfo) {
 			// Handle when keepalive is used and connection is reused.
-			// DNSStart(Done) and ConnectStart(Done) is skipped
+			// DNSStart(Done), ConnectStart(Done) and TLSHandshakeStart(Done) are skipped
 			if i.Reused {
 				r.isReused = true
 				now := time.Now()
@@ -79,25 +88,22 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 					r.tlsDone = now
 				}
 			}
+			
 		},
 
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
 			r.serverStart = time.Now()
 
 			// When client doesn't use DialContext or using old (before go1.7) `net` pakcage, DNS/TCP hook is not called.
-			// When connection is re-used, DNS/TCP/TLS hook is not called.
-			if (r.dnsStart.IsZero() && r.tcpStart.IsZero()) || (r.isReused) {
+			if (r.dnsStart.IsZero() && r.tcpStart.IsZero())  {
 				now := r.serverStart
 				r.dnsStart = now
 				r.dnsDone = now
 				r.tcpStart = now
 				r.tcpDone = now
-				//if r.isTLS {
-				//	r.tlsStart = now
-				//	r.tlsDone = now
-				//}
+			
 			}
-
+			
 		},
 
 		GotFirstResponseByte: func() {
