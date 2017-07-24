@@ -91,7 +91,7 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 			if r.isTLS {
 				r.TLSHandshake = r.serverStart.Sub(r.tcpDone)
 				r.Total +=r.TLSHandshake
-				r.Pretransfer_done = r.serverStart.Sub(r.dnsStart)
+				r.Pretransfer = r.serverStart.Sub(r.dnsStart)
 			}
 
 		},
