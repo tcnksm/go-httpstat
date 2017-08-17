@@ -3,7 +3,6 @@
 package httpstat
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -87,39 +86,37 @@ func (r Result) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "DNS lookup:        %4d ms\n",
+			fmt.Fprintf(s, "DNS lookup:        %4d ms\n",
 				int(r.DNSLookup/time.Millisecond))
-			fmt.Fprintf(&buf, "TCP connection:    %4d ms\n",
+			fmt.Fprintf(s, "TCP connection:    %4d ms\n",
 				int(r.TCPConnection/time.Millisecond))
-			fmt.Fprintf(&buf, "TLS handshake:     %4d ms\n",
+			fmt.Fprintf(s, "TLS handshake:     %4d ms\n",
 				int(r.TLSHandshake/time.Millisecond))
-			fmt.Fprintf(&buf, "Server processing: %4d ms\n",
+			fmt.Fprintf(s, "Server processing: %4d ms\n",
 				int(r.ServerProcessing/time.Millisecond))
 
 			if !r.t5.IsZero() {
-				fmt.Fprintf(&buf, "Content transfer:  %4d ms\n\n",
+				fmt.Fprintf(s, "Content transfer:  %4d ms\n\n",
 					int(r.contentTransfer/time.Millisecond))
 			} else {
-				fmt.Fprintf(&buf, "Content transfer:  %4s ms\n\n", "-")
+				fmt.Fprintf(s, "Content transfer:  %4s ms\n\n", "-")
 			}
 
-			fmt.Fprintf(&buf, "Name Lookup:    %4d ms\n",
+			fmt.Fprintf(s, "Name Lookup:    %4d ms\n",
 				int(r.NameLookup/time.Millisecond))
-			fmt.Fprintf(&buf, "Connect:        %4d ms\n",
+			fmt.Fprintf(s, "Connect:        %4d ms\n",
 				int(r.Connect/time.Millisecond))
-			fmt.Fprintf(&buf, "Pre Transfer:   %4d ms\n",
+			fmt.Fprintf(s, "Pre Transfer:   %4d ms\n",
 				int(r.Pretransfer/time.Millisecond))
-			fmt.Fprintf(&buf, "Start Transfer: %4d ms\n",
+			fmt.Fprintf(s, "Start Transfer: %4d ms\n",
 				int(r.StartTransfer/time.Millisecond))
 
 			if !r.t5.IsZero() {
-				fmt.Fprintf(&buf, "Total:          %4d ms\n",
+				fmt.Fprintf(s, "Total:          %4d ms\n",
 					int(r.total/time.Millisecond))
 			} else {
-				fmt.Fprintf(&buf, "Total:          %4s ms\n", "-")
+				fmt.Fprintf(s, "Total:          %4s ms\n", "-")
 			}
-			io.WriteString(s, buf.String())
 			return
 		}
 
