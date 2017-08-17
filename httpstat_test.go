@@ -214,24 +214,25 @@ func TestTotal_Zero(t *testing.T) {
 	}
 }
 
+var testResult = Result{
+	DNSLookup:        100 * time.Millisecond,
+	TCPConnection:    100 * time.Millisecond,
+	TLSHandshake:     100 * time.Millisecond,
+	ServerProcessing: 100 * time.Millisecond,
+	contentTransfer:  100 * time.Millisecond,
+
+	NameLookup:    100 * time.Millisecond,
+	Connect:       100 * time.Millisecond,
+	Pretransfer:   100 * time.Millisecond,
+	StartTransfer: 100 * time.Millisecond,
+	total:         100 * time.Millisecond,
+
+	t5: time.Now(),
+}
+
 func TestHTTPStat_Formatter(t *testing.T) {
-	result := Result{
-		DNSLookup:        100 * time.Millisecond,
-		TCPConnection:    100 * time.Millisecond,
-		TLSHandshake:     100 * time.Millisecond,
-		ServerProcessing: 100 * time.Millisecond,
-		contentTransfer:  100 * time.Millisecond,
 
-		NameLookup:    100 * time.Millisecond,
-		Connect:       100 * time.Millisecond,
-		Pretransfer:   100 * time.Millisecond,
-		StartTransfer: 100 * time.Millisecond,
-		total:         100 * time.Millisecond,
-
-		t5: time.Now(),
-	}
-
-	want := `DNS lookup:         100 ms
+	const want = `DNS lookup:         100 ms
 TCP connection:     100 ms
 TLS handshake:      100 ms
 Server processing:  100 ms
@@ -244,8 +245,22 @@ Start Transfer:  100 ms
 Total:           100 ms
 `
 	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "%+v", result)
+	fmt.Fprintf(&buf, "%+v", testResult)
 	if got := buf.String(); want != got {
 		t.Fatalf("expect to be eq:\n\nwant:\n\n%s\ngot:\n\n%s\n", want, got)
+	}
+}
+
+func BenchmarkHTTPStat_Formatter(b *testing.B) {
+	for _, formatter := range []string{"%+v", "%v"} {
+		b.Run(formatter, func(b *testing.B) {
+			var buf bytes.Buffer
+
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				fmt.Fprintf(&buf, formatter, testResult)
+				buf.Reset()
+			}
+		})
 	}
 }
