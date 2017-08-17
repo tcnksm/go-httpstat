@@ -6,8 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"strings"
+	"strconv"
 	"time"
 )
 
@@ -87,55 +86,61 @@ func (r Result) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "DNS lookup:        %4d ms\n",
+			fmt.Fprintf(s, "DNS lookup:        %4d ms\n",
 				int(r.DNSLookup/time.Millisecond))
-			fmt.Fprintf(&buf, "TCP connection:    %4d ms\n",
+			fmt.Fprintf(s, "TCP connection:    %4d ms\n",
 				int(r.TCPConnection/time.Millisecond))
-			fmt.Fprintf(&buf, "TLS handshake:     %4d ms\n",
+			fmt.Fprintf(s, "TLS handshake:     %4d ms\n",
 				int(r.TLSHandshake/time.Millisecond))
-			fmt.Fprintf(&buf, "Server processing: %4d ms\n",
+			fmt.Fprintf(s, "Server processing: %4d ms\n",
 				int(r.ServerProcessing/time.Millisecond))
 
 			if !r.t5.IsZero() {
-				fmt.Fprintf(&buf, "Content transfer:  %4d ms\n\n",
+				fmt.Fprintf(s, "Content transfer:  %4d ms\n\n",
 					int(r.contentTransfer/time.Millisecond))
 			} else {
-				fmt.Fprintf(&buf, "Content transfer:  %4s ms\n\n", "-")
+				fmt.Fprintf(s, "Content transfer:  %4s ms\n\n", "-")
 			}
 
-			fmt.Fprintf(&buf, "Name Lookup:    %4d ms\n",
+			fmt.Fprintf(s, "Name Lookup:    %4d ms\n",
 				int(r.NameLookup/time.Millisecond))
-			fmt.Fprintf(&buf, "Connect:        %4d ms\n",
+			fmt.Fprintf(s, "Connect:        %4d ms\n",
 				int(r.Connect/time.Millisecond))
-			fmt.Fprintf(&buf, "Pre Transfer:   %4d ms\n",
+			fmt.Fprintf(s, "Pre Transfer:   %4d ms\n",
 				int(r.Pretransfer/time.Millisecond))
-			fmt.Fprintf(&buf, "Start Transfer: %4d ms\n",
+			fmt.Fprintf(s, "Start Transfer: %4d ms\n",
 				int(r.StartTransfer/time.Millisecond))
 
 			if !r.t5.IsZero() {
-				fmt.Fprintf(&buf, "Total:          %4d ms\n",
+				fmt.Fprintf(s, "Total:          %4d ms\n",
 					int(r.total/time.Millisecond))
 			} else {
-				fmt.Fprintf(&buf, "Total:          %4s ms\n", "-")
+				fmt.Fprintf(s, "Total:          %4s ms\n", "-")
 			}
-			io.WriteString(s, buf.String())
 			return
 		}
 
 		fallthrough
 	case 's', 'q':
-		d := r.durations()
-		list := make([]string, 0, len(d))
-		for k, v := range d {
+		var b bytes.Buffer
+		first := true
+		for k, v := range r.durations() {
+			if first {
+				first = false
+			} else {
+				b.Write([]byte(", "))
+			}
+			b.WriteString(k)
+			b.Write([]byte(": "))
 			// Handle when End function is not called
 			if (k == "ContentTransfer" || k == "Total") && r.t5.IsZero() {
-				list = append(list, fmt.Sprintf("%s: - ms", k))
+				b.WriteString("- ms")
 				continue
 			}
-			list = append(list, fmt.Sprintf("%s: %d ms", k, v/time.Millisecond))
+			b.WriteString(strconv.FormatInt(int64(v/time.Millisecond), 10))
+			b.Write([]byte(" ms"))
 		}
-		io.WriteString(s, strings.Join(list, ", "))
+		b.WriteTo(s)
 	}
 
 }
