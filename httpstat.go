@@ -3,10 +3,10 @@
 package httpstat
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"strings"
+	"strconv"
 	"time"
 )
 
@@ -122,17 +122,25 @@ func (r Result) Format(s fmt.State, verb rune) {
 
 		fallthrough
 	case 's', 'q':
-		d := r.durations()
-		list := make([]string, 0, len(d))
-		for k, v := range d {
+		var b bytes.Buffer
+		first := true
+		for k, v := range r.durations() {
+			if first {
+				first = false
+			} else {
+				b.Write([]byte(", "))
+			}
+			b.WriteString(k)
+			b.Write([]byte(": "))
 			// Handle when End function is not called
 			if (k == "ContentTransfer" || k == "Total") && r.t5.IsZero() {
-				list = append(list, fmt.Sprintf("%s: - ms", k))
+				b.WriteString("- ms")
 				continue
 			}
-			list = append(list, fmt.Sprintf("%s: %d ms", k, v/time.Millisecond))
+			b.WriteString(strconv.FormatInt(int64(v/time.Millisecond), 10))
+			b.Write([]byte(" ms"))
 		}
-		io.WriteString(s, strings.Join(list, ", "))
+		b.WriteTo(s)
 	}
 
 }
