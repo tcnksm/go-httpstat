@@ -18,6 +18,8 @@ Use `go get`,
 $ go get github.com/tcnksm/go-httpstat
 ```
 
-## Author
+## Authors
 
-[Taichi Nakashima](https://github.com/tcnksm)
+Original author [Taichi Nakashima](https://github.com/tcnksm)
+
+Collaboration on this fork by [Benoit Remy](bremy@cns-com.com) and [Jose Tamayo](jtamayo@cns-com.com)
