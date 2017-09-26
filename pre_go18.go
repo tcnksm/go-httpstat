@@ -24,6 +24,20 @@ func (r *Result) End(t time.Time) {
 	r.total = r.t5.Sub(r.t0)
 }
 
+// ContentTransfer returns the duration of content transfer time.
+// It is from first response byte to the given time. The time must
+// be time after read body (go-httpstat can not detect that time).
+func (r *Result) ContentTransfer(t time.Time) time.Duration {
+	return t.Sub(r.t4)
+}
+
+// Total returns the duration of total http request.
+// It is from dns lookup start time to the given time. The
+// time must be time after read body (go-httpstat can not detect that time).
+func (r *Result) Total(t time.Time) time.Duration {
+	return t.Sub(r.t0)
+}
+
 func withClientTrace(ctx context.Context, r *Result) context.Context {
 	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
 		GetConn: func(hostPort string) {

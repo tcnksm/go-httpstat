@@ -68,20 +68,6 @@ func (r *Result) durations() map[string]time.Duration {
 	}
 }
 
-// ContentTransfer returns the duration of content transfer time.
-// It is from first response byte to the given time. The time must
-// be time after read body (go-httpstat can not detect that time).
-func (r *Result) ContentTransfer(t time.Time) time.Duration {
-	return t.Sub(r.t4)
-}
-
-// Total returns the duration of total http request.
-// It is from dns lookup start time to the given time. The
-// time must be time after read body (go-httpstat can not detect that time).
-func (r *Result) Total(t time.Time) time.Duration {
-	return t.Sub(r.t0)
-}
-
 // Format formats stats result.
 func (r Result) Format(s fmt.State, verb rune) {
 	switch verb {
@@ -97,7 +83,7 @@ func (r Result) Format(s fmt.State, verb rune) {
 			fmt.Fprintf(&buf, "Server processing: %4d ms\n",
 				int(r.ServerProcessing/time.Millisecond))
 
-			if !r.t5.IsZero() {
+			if r.total > 0 {
 				fmt.Fprintf(&buf, "Content transfer:  %4d ms\n\n",
 					int(r.contentTransfer/time.Millisecond))
 			} else {
@@ -113,7 +99,7 @@ func (r Result) Format(s fmt.State, verb rune) {
 			fmt.Fprintf(&buf, "Start Transfer: %4d ms\n",
 				int(r.StartTransfer/time.Millisecond))
 
-			if !r.t5.IsZero() {
+			if r.total > 0 {
 				fmt.Fprintf(&buf, "Total:          %4d ms\n",
 					int(r.total/time.Millisecond))
 			} else {
