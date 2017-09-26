@@ -13,7 +13,6 @@ import (
 // This must be called after reading response body.
 func (r *Result) End(t time.Time) {
 	r.trasferDone = t
-	r.t5 = t // for Formatter
 
 	// This means result is empty (it does nothing).
 	// Skip setting value(contentTransfer and total will be zero).
