@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"net/http/httptrace"
 	"time"
+	"strings"
 )
 
 // End sets the time when reading response is done.
@@ -86,6 +87,8 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 			if i.Reused {
 				r.isReused = true
 			}
+			r.LocalAddr = strings.Split(i.Conn.LocalAddr().String(), ":")[0]
+			r.RemoteAddr = strings.Split(i.Conn.RemoteAddr().String(), ":")[0]
 		},
 
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
