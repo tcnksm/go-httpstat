@@ -9,6 +9,7 @@ import (
 	"io"
 	"strings"
 	"time"
+	"net"
 )
 
 // Result stores httpstat info.
@@ -26,6 +27,9 @@ type Result struct {
 	Pretransfer   time.Duration
 	StartTransfer time.Duration
 	total         time.Duration
+
+	LocalAddr  string
+	RemoteAddr string
 
 	t0 time.Time
 	t1 time.Time
@@ -65,6 +69,13 @@ func (r *Result) durations() map[string]time.Duration {
 		"Pretransfer":   r.Connect,
 		"StartTransfer": r.StartTransfer,
 		"Total":         r.total,
+	}
+}
+
+func (r *Result) addresses() map[string]net.IP {
+	return map[string]net.IP{
+		"LocalAddr":  r.LocalAddr,
+		"RemoteAddr": r.RemoteAddr,
 	}
 }
 
