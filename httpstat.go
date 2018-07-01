@@ -43,7 +43,7 @@ type Result struct {
 	serverStart   time.Time
 	serverDone    time.Time
 	transferStart time.Time
-	trasferDone   time.Time // need to be provided from outside
+	transferDone  time.Time // need to be provided from outside
 
 	// isTLS is true when connection seems to use TLS
 	isTLS bool
