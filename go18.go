@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http/httptrace"
+	"sync"
 	"time"
 )
 
@@ -39,6 +40,7 @@ func (r *Result) Total(t time.Time) time.Duration {
 }
 
 func withClientTrace(ctx context.Context, r *Result) context.Context {
+	r.m = &sync.Mutex{}
 	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
 		DNSStart: func(i httptrace.DNSStartInfo) {
 			r.dnsStart = time.Now()
@@ -89,6 +91,9 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 		},
 
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
+			r.m.Lock()
+			defer r.m.Unlock()
+
 			r.serverStart = time.Now()
 
 			// When client doesn't use DialContext or using old (before go1.7) `net`
@@ -123,6 +128,9 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 		},
 
 		GotFirstResponseByte: func() {
+			r.m.Lock()
+			defer r.m.Unlock()
+
 			r.serverDone = time.Now()
 
 			r.ServerProcessing = r.serverDone.Sub(r.serverStart)

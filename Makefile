@@ -2,7 +2,7 @@ PACKAGES = $(shell go list ./... | grep -v '/vendor/')
 
 default: test
 
-test-all: vet lint test
+test-all: vet lint test-race
 
 test: 
 	go test -v -parallel=4 ${PACKAGES}
