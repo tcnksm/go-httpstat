@@ -1,4 +1,4 @@
-package httpstat_test
+package main
 
 import (
 	"io"
