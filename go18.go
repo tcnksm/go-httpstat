@@ -42,6 +42,7 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 	return httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
 		DNSStart: func(i httptrace.DNSStartInfo) {
 			r.dnsStart = time.Now()
+			r.t0 = r.dnsStart
 		},
 
 		DNSDone: func(i httptrace.DNSDoneInfo) {
