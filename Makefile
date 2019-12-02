@@ -14,7 +14,7 @@ vet:
 	go vet ${PACKAGES}
 
 lint:
-	@go get github.com/golang/lint/golint
+	@go get -u golang.org/x/lint/golint
 	go list ./... | grep -v vendor | xargs -n1 golint 
 
 cover:
