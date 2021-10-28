@@ -49,7 +49,7 @@ type Result struct {
 	isTLS bool
 
 	// isReused is true when connection is reused (keep-alive)
-	isReused bool
+	IsReused bool
 }
 
 func (r *Result) durations() map[string]time.Duration {

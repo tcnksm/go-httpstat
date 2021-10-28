@@ -84,7 +84,7 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 			// Handle when keep alive is used and connection is reused.
 			// DNSStart(Done) and ConnectStart(Done) is skipped
 			if i.Reused {
-				r.isReused = true
+				r.IsReused = true
 			}
 		},
 
@@ -103,7 +103,7 @@ func withClientTrace(ctx context.Context, r *Result) context.Context {
 			}
 
 			// When connection is re-used, DNS/TCP/TLS hook is not called.
-			if r.isReused {
+			if r.IsReused {
 				now := r.serverStart
 
 				r.dnsStart = now
