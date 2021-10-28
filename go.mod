@@ -1,4 +1,4 @@
-module github.com/dex80526/gohttpstat
+module github.com/dex80526/go-httpstat
 
 go 1.16
 

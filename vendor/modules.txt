@@ -1,0 +1,3 @@
+# github.com/tcnksm/go-httpstat v0.2.0
+## explicit
+github.com/tcnksm/go-httpstat
